@@ -9,16 +9,19 @@ const BASE_MOVE_SPEED = 3;
 const CANVAS_WIDTH = 1024;
 const CANVAS_HEIGHT = 576;
 
+type Players = { [key: string]: Player };
+
 export class Game {
   socket: Socket;
   canvas: HTMLCanvasElement;
   context: CanvasRenderingContext2D;
-  frontendPlayers: { [key: string]: Player } = {};
+  frontendPlayers: Players = {};
   playerInputs: { sequenceNumber: number; dx: number; dy: number }[] = [];
   sequenceNumber = 0;
   keyboard = new Keyboard();
   animationId?: number;
   frontendProjectiles: { [key: string]: Projectile } = {};
+  onUpdatePlayersCallback?: (players: Players) => void;
 
   constructor({
     socket,
@@ -37,11 +40,13 @@ export class Game {
   }
 
   init = () => {
-    this.socket.connect();
-    let header = document.getElementById("header");
-
+    this.socket.on("connect", () => {
+      this.socket.emit("initCanvas", { width: this.canvas.width, height: this.canvas.height, devicePixelRatio });
+    });
     this.socket.on("updatePlayers", this.onUpdatePlayers);
     this.socket.on("updateProjectiles", this.onUpdateProjectiles);
+    this.socket.connect();
+
     // draw
     this.animate();
 
@@ -98,6 +103,12 @@ export class Game {
   };
 
   private onUpdateProjectiles = (backendProjectiles: any) => {
+    // remove dead projectiles
+    for (const id in this.frontendProjectiles) {
+      if (!backendProjectiles[id]) {
+        delete this.frontendProjectiles[id];
+      }
+    }
     for (const id in backendProjectiles) {
       const backendProjectile = backendProjectiles[id];
 
@@ -107,7 +118,7 @@ export class Game {
           x: backendProjectile.x,
           y: backendProjectile.y,
           velocity: backendProjectile.velocity,
-          radius: 3,
+          radius: backendProjectile.radius,
           color: this.frontendPlayers[backendProjectile.playerId]?.color,
         });
       }
@@ -132,10 +143,12 @@ export class Game {
       // add new players
       if (!this.frontendPlayers[id]) {
         this.frontendPlayers[id] = new Player({
+          id,
           x: backendPlayer.x,
           y: backendPlayer.y,
-          radius: 10,
+          radius: backendPlayer.radius,
           color: backendPlayer.color,
+          score: backendPlayer.score,
         });
       }
       // update players
@@ -166,6 +179,10 @@ export class Game {
           });
         }
       }
+    }
+
+    if (this.onUpdatePlayersCallback) {
+      this.onUpdatePlayersCallback(this.frontendPlayers);
     }
   };
 

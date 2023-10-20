@@ -13,7 +13,7 @@ export class Entity {
   constructor({ x, y, radius, color }: EntityProps) {
     this.x = x;
     this.y = y;
-    this.radius = radius * devicePixelRatio;
+    this.radius = radius;
     this.color = color;
   }
 
