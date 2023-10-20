@@ -14,17 +14,11 @@ export const metadata: Metadata = {
   description: "Childhood game recreated as a video game",
 };
 
-export default async function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions);
   return (
     <html lang="en">
-      <body
-        className={`flex flex-col items-center min-h-screen ${inter.className}`}
-      >
+      <body className={`flex flex-col items-center min-h-screen ${inter.className}`}>
         <AuthProvider session={session}>
           <SocketProvider>
             <Header />

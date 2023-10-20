@@ -1,16 +1,16 @@
-interface PlayerProps {
+export interface EntityProps {
   x: number;
   y: number;
   radius: number;
   color: string;
 }
-export class Player {
+export class Entity {
   x: number;
   y: number;
   radius: number;
   color: string;
 
-  constructor({ x, y, radius = 10, color }: PlayerProps) {
+  constructor({ x, y, radius, color }: EntityProps) {
     this.x = x;
     this.y = y;
     this.radius = radius * devicePixelRatio;

@@ -19,19 +19,9 @@ const renderProfileIcon = (
   if (user?.image) {
     return <img src={user.image} className="rounded-full" />;
   } else if (user?.name) {
-    return (
-      <img
-        src={`https://ui-avatars.com/api/?name=${user.name}`}
-        className="rounded-full"
-      />
-    );
+    return <img src={`https://ui-avatars.com/api/?name=${user.name}`} className="rounded-full" />;
   } else if (user?.email) {
-    return (
-      <img
-        src={`https://ui-avatars.com/api/?name=${user.email}`}
-        className="rounded-full"
-      />
-    );
+    return <img src={`https://ui-avatars.com/api/?name=${user.email}`} className="rounded-full" />;
   }
   return <UserCircleIcon className="rounded-full" />;
 };
@@ -41,15 +31,13 @@ export const Header = () => {
   const router = useRouter();
 
   return (
-    <div className="flex justify-end w-full px-5 py-2 border-b-2 border-b-accent-500">
+    <div className="flex justify-end w-full px-5 py-2 border-b-2 border-b-accent-500" id="header">
       <HomeIcon
         className="w-10 h-10 text-primary-400 animate-glow hover:cursor-pointer ml-0 mr-auto"
         onClick={() => router.push("/")}
       />
       <Menu as="div" className="relative">
-        <Menu.Button className="w-10 h-10">
-          {renderProfileIcon(session?.user)}
-        </Menu.Button>
+        <Menu.Button className="w-10 h-10">{renderProfileIcon(session?.user)}</Menu.Button>
         <Transition
           as={Fragment}
           enter="transition ease-out duration-100"
@@ -64,20 +52,13 @@ export const Header = () => {
               {({ active }) => {
                 if (session?.user) {
                   return (
-                    <Link
-                      href="/"
-                      onClick={() => signOut()}
-                      className={`p-2 rounded-md ${active && "bg-accent-500"}`}
-                    >
+                    <Link href="/" onClick={() => signOut()} className={`p-2 rounded-md ${active && "bg-accent-500"}`}>
                       Sign Out
                     </Link>
                   );
                 }
                 return (
-                  <Link
-                    href="/login"
-                    className={`p-2 rounded-md ${active && "bg-accent-500"}`}
-                  >
+                  <Link href="/login" className={`p-2 rounded-md ${active && "bg-accent-500"}`}>
                     Login
                   </Link>
                 );
