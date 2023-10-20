@@ -1,18 +1,6 @@
-"use client";
-import { CheckBadgeIcon, XCircleIcon } from "@heroicons/react/24/solid";
-import { useSocket } from "../context/socketProvider";
+import { SocketConnectionBadge } from "./components/socketConnectionBadge";
 
-const SocketConnectionBadge = () => {
-  const { isConnected } = useSocket();
-
-  if (!isConnected) {
-    return <XCircleIcon className="w-10 h-10 text-red-500" />;
-  } else {
-    return <CheckBadgeIcon className="w-10 h-10 text-green-500" />;
-  }
-};
-
-export default function Game() {
+export default function GamePage() {
   return (
     <div>
       You made it! <SocketConnectionBadge />

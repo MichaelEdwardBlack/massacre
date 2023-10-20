@@ -9,21 +9,30 @@ import {
 } from "./signInButtons";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
+import { useSearchParams } from "next/navigation";
 
-const signInWithCredentials = async (formData: FormData) => {
+const signInWithCredentials = async (
+  formData: FormData,
+  callbackUrl: string
+) => {
   signIn("credentials", {
-    email: formData.get("email")?.valueOf() as String,
-    password: formData.get("password")?.valueOf() as String,
+    email: formData.get("email")?.valueOf() as string,
+    password: formData.get("password")?.valueOf() as string,
     redirect: true,
-    callbackUrl: "/",
+    callbackUrl: callbackUrl,
   });
 };
 
 export default function Login() {
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callbackUrl") ?? "/";
   return (
     <div className="flex flex-col pt-44 w-full items-center">
       <div className="grid max-w-sm w-full gap-4 px-4 py-3 border rounded-md bg-slate-100 dark:bg-slate-900 border-accent-500">
-        <form className="grid gap-4" action={signInWithCredentials}>
+        <form
+          className="grid gap-4"
+          action={(formData) => signInWithCredentials(formData, callbackUrl)}
+        >
           <div className="text-7xl font-neon text-secondary-500">Login</div>
           <Input
             name="email"

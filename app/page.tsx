@@ -2,7 +2,7 @@
 import { useRouter } from "next/navigation";
 import { Button } from "./components/button";
 
-export default function Home() {
+export default function HomePage() {
   const router = useRouter();
   return (
     <div>
@@ -10,10 +10,10 @@ export default function Home() {
         Massacre
       </div>
       <div className="flex justify-center items-center gap-4">
-        <Button color="primary" onClick={() => router.push("/game")}>
+        <Button color="primary" onClick={() => router.push("/game/host")}>
           Create Game
         </Button>
-        <Button color="secondary" onClick={() => router.push("/game")}>
+        <Button color="secondary" onClick={() => router.push("/game/join")}>
           Join Game
         </Button>
       </div>

@@ -50,6 +50,7 @@ const config: Config = {
         flicker: "flicker 1.5s infinite alternate",
         borderFlicker: "borderFlicker 1.5s infinite alternate",
         glow: "glow 2s ease-in-out infinite alternate",
+        borderGlow: "borderGlow 2s ease-in-out infinite alternate",
       },
       keyframes: {
         flicker: {
@@ -78,6 +79,16 @@ const config: Config = {
           to: {
             textShadow:
               "0 0 15px #fff, 0 0 20px var(--tw-gradient-to), 0 0 25px var(--tw-gradient-to), 0 0 30px var(--tw-gradient-to), 0 0 35px var(--tw-gradient-to)",
+          },
+        },
+        borderGlow: {
+          from: {
+            boxShadow:
+              "0 0 10px #fff, 0 0 15px var(--tw-gradient-from), 0 0 20px var(--tw-gradient-from), 0 0 25px var(--tw-gradient-from)",
+          },
+          to: {
+            boxShadow:
+              "0 0 10px #fff, 0 0 15px var(--tw-gradient-to), 0 0 20px var(--tw-gradient-to), 0 0 25px var(--tw-gradient-to), 0 0 30px var(--tw-gradient-to)",
           },
         },
       },

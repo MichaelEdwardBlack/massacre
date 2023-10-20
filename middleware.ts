@@ -5,4 +5,4 @@ export default withAuth(function middleware(request) {
 });
 
 // Private Routes
-export const config = { matcher: ["/game"] };
+export const config = { matcher: ["/game/:path*"] };
