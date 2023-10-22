@@ -7,8 +7,6 @@ import { Sprite } from "./Sprite";
 import { BASE_MOVE_SPEED, CANVAS_HEIGHT, CANVAS_WIDTH, TICK_RATE } from "./Constants";
 
 type Players = { [key: string]: Player };
-const mapImage = new Image();
-mapImage.src = "/maps/FirstMap.png";
 
 export class Game {
   socket: Socket;
@@ -20,13 +18,7 @@ export class Game {
   keyboard = new Keyboard();
   animationId?: number;
   frontendProjectiles: { [key: string]: Projectile } = {};
-  background = new Sprite({
-    position: {
-      x: 0,
-      y: 0,
-    },
-    image: mapImage,
-  });
+  background: Sprite;
   onUpdatePlayersCallback?: (players: Players) => void;
 
   constructor({
@@ -41,15 +33,23 @@ export class Game {
     this.socket = socket;
     this.canvas = canvas;
     this.context = context;
-    canvas.width = CANVAS_WIDTH;
-    canvas.height = CANVAS_HEIGHT;
+
+    const mapImage = new Image();
+    mapImage.src = "/maps/FirstMap.png";
+    this.background = new Sprite({
+      position: {
+        x: 0,
+        y: 0,
+      },
+      image: mapImage,
+    });
   }
 
   init = (username?: string | null) => {
     this.socket.on("connect", () => {
       this.socket.emit("initCanvas", {
-        width: this.canvas.width,
-        height: this.canvas.height,
+        width: CANVAS_WIDTH,
+        height: CANVAS_HEIGHT,
         devicePixelRatio,
         username,
       });
@@ -60,7 +60,7 @@ export class Game {
 
     // draw
     this.context.fillStyle = "rgba(0,0,0,0.1)";
-    this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    this.context.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
     this.animate();
 
     // game clock
@@ -69,28 +69,28 @@ export class Game {
         this.sequenceNumber++;
         let sequenceNumber = this.sequenceNumber;
         this.playerInputs.push({ sequenceNumber, dx: 0, dy: -BASE_MOVE_SPEED });
-        this.socket.emit("keydown", { keycode: this.keyboard.up.keycode, sequenceNumber });
+        this.socket.emit("keydown", { key: this.keyboard.up.key, sequenceNumber });
       }
 
       if (this.keyboard.left.pressed) {
         this.sequenceNumber++;
         let sequenceNumber = this.sequenceNumber;
         this.playerInputs.push({ sequenceNumber, dx: -BASE_MOVE_SPEED, dy: 0 });
-        this.socket.emit("keydown", { keycode: this.keyboard.left.keycode, sequenceNumber });
+        this.socket.emit("keydown", { key: this.keyboard.left.key, sequenceNumber });
       }
 
       if (this.keyboard.down.pressed) {
         this.sequenceNumber++;
         let sequenceNumber = this.sequenceNumber;
         this.playerInputs.push({ sequenceNumber, dx: 0, dy: BASE_MOVE_SPEED });
-        this.socket.emit("keydown", { keycode: this.keyboard.down.keycode, sequenceNumber });
+        this.socket.emit("keydown", { key: this.keyboard.down.key, sequenceNumber });
       }
 
       if (this.keyboard.right.pressed) {
         this.sequenceNumber++;
         let sequenceNumber = this.sequenceNumber;
         this.playerInputs.push({ sequenceNumber, dx: BASE_MOVE_SPEED, dy: 0 });
-        this.socket.emit("keydown", { keycode: this.keyboard.right.keycode, sequenceNumber });
+        this.socket.emit("keydown", { key: this.keyboard.right.key, sequenceNumber });
       }
     }, TICK_RATE);
 
@@ -104,8 +104,8 @@ export class Game {
 
     const myPlayer = this.frontendPlayers[this.socket.id];
     if (myPlayer) {
-      this.background.position.x = -myPlayer.x + CANVAS_WIDTH / 2;
-      this.background.position.y = -myPlayer.y + CANVAS_HEIGHT / 2;
+      this.background.position.x = -myPlayer.position.x + CANVAS_WIDTH / 2;
+      this.background.position.y = -myPlayer.position.y + CANVAS_HEIGHT / 2;
     }
 
     this.background.draw(this.context);
@@ -161,11 +161,15 @@ export class Game {
       const backendPlayer = backendPlayers[id];
       // add new players
       if (!this.frontendPlayers[id]) {
+        const img = new Image();
+        img.src = "/characters/BlackSorcerer/SpriteSheet.png";
         this.frontendPlayers[id] = new Player({
           id,
-          x: backendPlayer.x,
-          y: backendPlayer.y,
-          radius: backendPlayer.radius,
+          position: {
+            x: backendPlayer.x,
+            y: backendPlayer.y,
+          },
+          image: img,
           color: backendPlayer.color,
           score: backendPlayer.score,
           name: backendPlayer.name,
@@ -175,8 +179,8 @@ export class Game {
       else {
         // server reconciliation (fix lag for us the player)
         if (id === this.socket.id) {
-          this.frontendPlayers[id].x = backendPlayer.x;
-          this.frontendPlayers[id].y = backendPlayer.y;
+          this.frontendPlayers[id].position.x = backendPlayer.x;
+          this.frontendPlayers[id].position.y = backendPlayer.y;
           const lastBackendInputIndex = this.playerInputs.findIndex((input) => {
             return backendPlayer.sequenceNumber === input.sequenceNumber;
           });
@@ -186,13 +190,13 @@ export class Game {
           }
 
           this.playerInputs.forEach((input) => {
-            this.frontendPlayers[id].x += input.dx;
-            this.frontendPlayers[id].y += input.dy;
+            this.frontendPlayers[id].position.x += input.dx;
+            this.frontendPlayers[id].position.y += input.dy;
           });
         }
         // interpolation (smooth out lag for other players)
         else {
-          gsap.to(this.frontendPlayers[id], {
+          gsap.to(this.frontendPlayers[id].position, {
             x: backendPlayer.x,
             y: backendPlayer.y,
             duration: TICK_RATE / 1000,
@@ -208,12 +212,12 @@ export class Game {
 
   private onKeyDown = (e: KeyboardEvent) => {
     if (!this.frontendPlayers[this.socket.id]) return;
-    this.keyboard.keyDown(e.code);
+    this.keyboard.keyDown(e.key);
   };
 
   private onKeyUp = (e: KeyboardEvent) => {
     if (!this.frontendPlayers[this.socket.id]) return;
-    this.keyboard.keyUp(e.code);
+    this.keyboard.keyUp(e.key);
   };
 
   private onClick = (e: MouseEvent) => {
@@ -224,8 +228,8 @@ export class Game {
       (e.clientX - this.canvas.offsetLeft) * devicePixelRatio - CANVAS_WIDTH / 2
     );
     this.socket.emit("shoot", {
-      x: myPlayer.x,
-      y: myPlayer.y,
+      x: myPlayer.position.x,
+      y: myPlayer.position.y,
       angle,
     });
   };

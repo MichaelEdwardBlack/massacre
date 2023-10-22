@@ -1,9 +1,9 @@
 export class Key {
-  keycode: string;
+  key: string;
   pressed: boolean;
 
-  constructor(keycode: string, pressed = false) {
-    this.keycode = keycode;
+  constructor(key: string, pressed = false) {
+    this.key = key;
     this.pressed = pressed;
   }
 }
@@ -15,24 +15,24 @@ export class Keyboard {
   right: Key;
 
   constructor() {
-    this.up = new Key("KeyW");
-    this.left = new Key("KeyA");
-    this.down = new Key("KeyS");
-    this.right = new Key("KeyD");
+    this.up = new Key("w");
+    this.left = new Key("a");
+    this.down = new Key("s");
+    this.right = new Key("d");
   }
 
-  keyDown(keycode: string) {
-    switch (keycode) {
-      case this.up.keycode:
+  keyDown(key: string) {
+    switch (key) {
+      case this.up.key:
         this.up.pressed = true;
         break;
-      case this.left.keycode:
+      case this.left.key:
         this.left.pressed = true;
         break;
-      case this.down.keycode:
+      case this.down.key:
         this.down.pressed = true;
         break;
-      case this.right.keycode:
+      case this.right.key:
         this.right.pressed = true;
         break;
       default:
@@ -40,18 +40,18 @@ export class Keyboard {
     }
   }
 
-  keyUp(keycode: string) {
-    switch (keycode) {
-      case this.up.keycode:
+  keyUp(key: string) {
+    switch (key) {
+      case this.up.key:
         this.up.pressed = false;
         break;
-      case this.left.keycode:
+      case this.left.key:
         this.left.pressed = false;
         break;
-      case this.down.keycode:
+      case this.down.key:
         this.down.pressed = false;
         break;
-      case this.right.keycode:
+      case this.right.key:
         this.right.pressed = false;
         break;
       default:

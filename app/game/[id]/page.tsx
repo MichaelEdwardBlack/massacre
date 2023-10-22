@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { Game } from "../classes/Game";
 import { LeaderBoard } from "../components/LeaderBoard";
+import { CANVAS_HEIGHT, CANVAS_WIDTH } from "../classes/Constants";
 
 export const GameSessionPage = ({ params }: { params: { id: string } }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -21,7 +22,7 @@ export const GameSessionPage = ({ params }: { params: { id: string } }) => {
   return (
     <div>
       <LeaderBoard />
-      <canvas ref={canvasRef}></canvas>
+      <canvas ref={canvasRef} width={CANVAS_WIDTH} height={CANVAS_HEIGHT}></canvas>
     </div>
   );
 };
