@@ -21,7 +21,7 @@ export const LeaderBoard = () => {
       <div className="mb-3">Leaderboard</div>
       {players.map((player) => (
         <div key={player.id}>
-          {player.id}: {player.score}
+          {player.name}: {player.score}
         </div>
       ))}
     </div>

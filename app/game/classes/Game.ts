@@ -45,9 +45,14 @@ export class Game {
     canvas.height = CANVAS_HEIGHT;
   }
 
-  init = () => {
+  init = (username?: string | null) => {
     this.socket.on("connect", () => {
-      this.socket.emit("initCanvas", { width: this.canvas.width, height: this.canvas.height, devicePixelRatio });
+      this.socket.emit("initCanvas", {
+        width: this.canvas.width,
+        height: this.canvas.height,
+        devicePixelRatio,
+        username,
+      });
     });
     this.socket.on("updatePlayers", this.onUpdatePlayers);
     this.socket.on("updateProjectiles", this.onUpdateProjectiles);
@@ -163,6 +168,7 @@ export class Game {
           radius: backendPlayer.radius,
           color: backendPlayer.color,
           score: backendPlayer.score,
+          name: backendPlayer.name,
         });
       }
       // update players
