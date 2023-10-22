@@ -3,13 +3,12 @@ import { Socket } from "socket.io-client";
 import { Player } from "./Player";
 import { Keyboard } from "./Keyboard";
 import { Projectile } from "./Projectile";
-
-const TICK_RATE = 15; // milliseconds
-const BASE_MOVE_SPEED = 3;
-const CANVAS_WIDTH = 1024;
-const CANVAS_HEIGHT = 576;
+import { Sprite } from "./Sprite";
+import { BASE_MOVE_SPEED, CANVAS_HEIGHT, CANVAS_WIDTH, TICK_RATE } from "./Constants";
 
 type Players = { [key: string]: Player };
+const mapImage = new Image();
+mapImage.src = "/maps/FirstMap.png";
 
 export class Game {
   socket: Socket;
@@ -21,6 +20,13 @@ export class Game {
   keyboard = new Keyboard();
   animationId?: number;
   frontendProjectiles: { [key: string]: Projectile } = {};
+  background = new Sprite({
+    position: {
+      x: 0,
+      y: 0,
+    },
+    image: mapImage,
+  });
   onUpdatePlayersCallback?: (players: Players) => void;
 
   constructor({
@@ -35,8 +41,8 @@ export class Game {
     this.socket = socket;
     this.canvas = canvas;
     this.context = context;
-    canvas.width = CANVAS_WIDTH * devicePixelRatio;
-    canvas.height = CANVAS_HEIGHT * devicePixelRatio;
+    canvas.width = CANVAS_WIDTH;
+    canvas.height = CANVAS_HEIGHT;
   }
 
   init = () => {
@@ -48,6 +54,8 @@ export class Game {
     this.socket.connect();
 
     // draw
+    this.context.fillStyle = "rgba(0,0,0,0.1)";
+    this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
     this.animate();
 
     // game clock
@@ -88,17 +96,23 @@ export class Game {
 
   private animate = () => {
     this.animationId = requestAnimationFrame(this.animate);
-    this.context.fillStyle = "rgba(0,0,0,0.1)";
-    this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+    const myPlayer = this.frontendPlayers[this.socket.id];
+    if (myPlayer) {
+      this.background.position.x = -myPlayer.x + CANVAS_WIDTH / 2;
+      this.background.position.y = -myPlayer.y + CANVAS_HEIGHT / 2;
+    }
+
+    this.background.draw(this.context);
 
     for (const id in this.frontendPlayers) {
       const player = this.frontendPlayers[id];
-      player.draw(this.context);
+      player.drawRelative(this.context, this.background);
     }
 
     for (const id in this.frontendProjectiles) {
       const projectile = this.frontendProjectiles[id];
-      projectile.draw(this.context);
+      projectile.drawRelative(this.context, this.background);
     }
   };
 
@@ -200,8 +214,8 @@ export class Game {
     const myPlayer = this.frontendPlayers[this.socket.id];
     if (!myPlayer) return;
     const angle = Math.atan2(
-      (e.clientY - this.canvas.offsetTop) * devicePixelRatio - myPlayer.y,
-      (e.clientX - this.canvas.offsetLeft) * devicePixelRatio - myPlayer.x
+      (e.clientY - this.canvas.offsetTop) * devicePixelRatio - CANVAS_HEIGHT / 2,
+      (e.clientX - this.canvas.offsetLeft) * devicePixelRatio - CANVAS_WIDTH / 2
     );
     this.socket.emit("shoot", {
       x: myPlayer.x,
