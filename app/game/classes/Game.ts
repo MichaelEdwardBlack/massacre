@@ -19,7 +19,9 @@ export class Game {
   animationId?: number;
   frontendProjectiles: { [key: string]: Projectile } = {};
   background: Sprite;
+  foreground: Sprite;
   onUpdatePlayersCallback?: (players: Players) => void;
+  boundaries: Sprite[] = [];
 
   constructor({
     socket,
@@ -43,6 +45,16 @@ export class Game {
       },
       image: mapImage,
     });
+
+    const foregroundImage = new Image();
+    foregroundImage.src = "/maps/FirstMapForeground.png";
+    this.foreground = new Sprite({
+      position: {
+        x: 0,
+        y: 0,
+      },
+      image: foregroundImage,
+    });
   }
 
   init = (username?: string | null) => {
@@ -56,6 +68,7 @@ export class Game {
     });
     this.socket.on("updatePlayers", this.onUpdatePlayers);
     this.socket.on("updateProjectiles", this.onUpdateProjectiles);
+    this.socket.on("initBoundaries", this.initBoundaries);
     this.socket.connect();
 
     // draw
@@ -104,8 +117,12 @@ export class Game {
 
     const myPlayer = this.frontendPlayers[this.socket.id];
     if (myPlayer) {
-      this.background.position.x = -myPlayer.position.x + CANVAS_WIDTH / 2;
-      this.background.position.y = -myPlayer.position.y + CANVAS_HEIGHT / 2;
+      const xOffset = (myPlayer.image.width / 4) * 2;
+      const yOffset = (myPlayer.image.height / 7) * 2;
+      this.background.position.x = -myPlayer.position.x - xOffset + CANVAS_WIDTH / 2;
+      this.background.position.y = -myPlayer.position.y - yOffset + CANVAS_HEIGHT / 2;
+      this.foreground.position.x = -myPlayer.position.x - xOffset + CANVAS_WIDTH / 2;
+      this.foreground.position.y = -myPlayer.position.y - yOffset + CANVAS_HEIGHT / 2;
     }
 
     this.background.draw(this.context);
@@ -118,6 +135,21 @@ export class Game {
     for (const id in this.frontendProjectiles) {
       const projectile = this.frontendProjectiles[id];
       projectile.drawRelative(this.context, this.background);
+    }
+
+    // this.boundaries.forEach((boundary) => {
+    //   boundary.drawRelative(this.context, this.background);
+    // });
+
+    this.foreground.draw(this.context);
+  };
+
+  private initBoundaries = (boundaries: any) => {
+    const boundaryImage = new Image(64, 64);
+    boundaryImage.src = "/tiles/Boundary.png";
+    for (let i = 0; i < boundaries.length; i++) {
+      const boundary = new Sprite({ position: boundaries[i].position, image: boundaryImage });
+      this.boundaries.push(boundary);
     }
   };
 
@@ -162,7 +194,7 @@ export class Game {
       // add new players
       if (!this.frontendPlayers[id]) {
         const img = new Image();
-        img.src = "/characters/BlackSorcerer/SpriteSheet.png";
+        img.src = "/characters/BlackSorcerer/SeparateAnim/Walk.png";
         this.frontendPlayers[id] = new Player({
           id,
           position: {
@@ -173,10 +205,13 @@ export class Game {
           color: backendPlayer.color,
           score: backendPlayer.score,
           name: backendPlayer.name,
+          frames: { current: 0, max: 4, elapsed: 0 },
         });
       }
       // update players
       else {
+        // update directions and movement
+        const previousPosition = Object.assign({}, this.frontendPlayers[id].position);
         // server reconciliation (fix lag for us the player)
         if (id === this.socket.id) {
           this.frontendPlayers[id].position.x = backendPlayer.x;
@@ -202,6 +237,8 @@ export class Game {
             duration: TICK_RATE / 1000,
           });
         }
+
+        this.frontendPlayers[id].calculateDirectionAndMovement(previousPosition);
       }
     }
 
