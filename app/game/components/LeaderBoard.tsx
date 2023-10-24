@@ -1,15 +1,29 @@
-import { Player } from "../[id]/classes/Player";
+import { useSocket } from "@/app/context/socketProvider";
+import { Player } from "../classes/Player";
+import { useEffect, useState } from "react";
 
-interface LeaderBoardProps {
-  players: { [key: string]: Player };
-}
+export const LeaderBoard = () => {
+  const { socket } = useSocket();
+  const [players, setPlayers] = useState<Player[]>([]);
 
-export const LeaderBoard = ({ players }: LeaderBoardProps) => {
-  const orderedPlayers = Object.values(players).sort((a,b) => a.score - b.score);
+  useEffect(() => {
+    if (socket != null) {
+      console.log("test");
+      socket.on("updatePlayers", (backendPlayers: { [key: string]: Player }) => {
+        let sortedPlayers = Object.values(backendPlayers).sort((a, b) => b.score - a.score);
+        setPlayers(sortedPlayers);
+      });
+    }
+  }, [socket]);
+
   return (
     <div className="absolute p-3">
       <div className="mb-3">Leaderboard</div>
-      {orderedPlayers.map((player) => <div>{player.id}: {player.score}</div>)}
+      {players.map((player) => (
+        <div key={player.id}>
+          {player.name}: {player.score}
+        </div>
+      ))}
     </div>
   );
 };

@@ -1,29 +1,28 @@
 "use client";
 import { useSocket } from "@/app/context/socketProvider";
-import { useEffect, useRef, useState } from "react";
-import { Game } from "./classes/Game";
+import { useEffect, useRef } from "react";
+import { useSession } from "next-auth/react";
+import { Game } from "../classes/Game";
 import { LeaderBoard } from "../components/LeaderBoard";
+import { CANVAS_HEIGHT, CANVAS_WIDTH } from "../classes/Constants";
 
 export const GameSessionPage = ({ params }: { params: { id: string } }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const { socket } = useSocket();
-  const [players, setPlayers] = useState({});
+  const { data: session } = useSession();
 
   useEffect(() => {
     const canvas = canvasRef.current;
     const context = canvas?.getContext("2d");
     if (socket == null || canvas == null || context == null) return;
     const game = new Game({ socket, canvas, context });
-    game.onUpdatePlayersCallback = (p) => {
-        setPlayers(p);
-    }
-    game.init();
+    game.init(session?.user?.name);
   }, [socket]);
 
   return (
     <div>
-      <LeaderBoard players={players} />
-      <canvas ref={canvasRef}></canvas>
+      <LeaderBoard />
+      <canvas ref={canvasRef} width={CANVAS_WIDTH} height={CANVAS_HEIGHT}></canvas>
     </div>
   );
 };

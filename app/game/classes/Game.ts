@@ -3,11 +3,8 @@ import { Socket } from "socket.io-client";
 import { Player } from "./Player";
 import { Keyboard } from "./Keyboard";
 import { Projectile } from "./Projectile";
-
-const TICK_RATE = 15; // milliseconds
-const BASE_MOVE_SPEED = 3;
-const CANVAS_WIDTH = 1024;
-const CANVAS_HEIGHT = 576;
+import { Sprite } from "./Sprite";
+import { BASE_MOVE_SPEED, CANVAS_HEIGHT, CANVAS_WIDTH, TICK_RATE } from "./Constants";
 
 type Players = { [key: string]: Player };
 
@@ -21,7 +18,10 @@ export class Game {
   keyboard = new Keyboard();
   animationId?: number;
   frontendProjectiles: { [key: string]: Projectile } = {};
+  background: Sprite;
+  foreground: Sprite;
   onUpdatePlayersCallback?: (players: Players) => void;
+  boundaries: Sprite[] = [];
 
   constructor({
     socket,
@@ -35,19 +35,45 @@ export class Game {
     this.socket = socket;
     this.canvas = canvas;
     this.context = context;
-    canvas.width = CANVAS_WIDTH * devicePixelRatio;
-    canvas.height = CANVAS_HEIGHT * devicePixelRatio;
+
+    const mapImage = new Image();
+    mapImage.src = "/maps/FirstMap.png";
+    this.background = new Sprite({
+      position: {
+        x: 0,
+        y: 0,
+      },
+      image: mapImage,
+    });
+
+    const foregroundImage = new Image();
+    foregroundImage.src = "/maps/FirstMapForeground.png";
+    this.foreground = new Sprite({
+      position: {
+        x: 0,
+        y: 0,
+      },
+      image: foregroundImage,
+    });
   }
 
-  init = () => {
+  init = (username?: string | null) => {
     this.socket.on("connect", () => {
-      this.socket.emit("initCanvas", { width: this.canvas.width, height: this.canvas.height, devicePixelRatio });
+      this.socket.emit("initCanvas", {
+        width: CANVAS_WIDTH,
+        height: CANVAS_HEIGHT,
+        devicePixelRatio,
+        username,
+      });
     });
     this.socket.on("updatePlayers", this.onUpdatePlayers);
     this.socket.on("updateProjectiles", this.onUpdateProjectiles);
+    this.socket.on("initBoundaries", this.initBoundaries);
     this.socket.connect();
 
     // draw
+    this.context.fillStyle = "rgba(0,0,0,0.1)";
+    this.context.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
     this.animate();
 
     // game clock
@@ -56,28 +82,28 @@ export class Game {
         this.sequenceNumber++;
         let sequenceNumber = this.sequenceNumber;
         this.playerInputs.push({ sequenceNumber, dx: 0, dy: -BASE_MOVE_SPEED });
-        this.socket.emit("keydown", { keycode: this.keyboard.up.keycode, sequenceNumber });
+        this.socket.emit("keydown", { key: this.keyboard.up.key, sequenceNumber });
       }
 
       if (this.keyboard.left.pressed) {
         this.sequenceNumber++;
         let sequenceNumber = this.sequenceNumber;
         this.playerInputs.push({ sequenceNumber, dx: -BASE_MOVE_SPEED, dy: 0 });
-        this.socket.emit("keydown", { keycode: this.keyboard.left.keycode, sequenceNumber });
+        this.socket.emit("keydown", { key: this.keyboard.left.key, sequenceNumber });
       }
 
       if (this.keyboard.down.pressed) {
         this.sequenceNumber++;
         let sequenceNumber = this.sequenceNumber;
         this.playerInputs.push({ sequenceNumber, dx: 0, dy: BASE_MOVE_SPEED });
-        this.socket.emit("keydown", { keycode: this.keyboard.down.keycode, sequenceNumber });
+        this.socket.emit("keydown", { key: this.keyboard.down.key, sequenceNumber });
       }
 
       if (this.keyboard.right.pressed) {
         this.sequenceNumber++;
         let sequenceNumber = this.sequenceNumber;
         this.playerInputs.push({ sequenceNumber, dx: BASE_MOVE_SPEED, dy: 0 });
-        this.socket.emit("keydown", { keycode: this.keyboard.right.keycode, sequenceNumber });
+        this.socket.emit("keydown", { key: this.keyboard.right.key, sequenceNumber });
       }
     }, TICK_RATE);
 
@@ -88,17 +114,40 @@ export class Game {
 
   private animate = () => {
     this.animationId = requestAnimationFrame(this.animate);
-    this.context.fillStyle = "rgba(0,0,0,0.1)";
-    this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+    const myPlayer = this.frontendPlayers[this.socket.id];
+    if (myPlayer) {
+      this.background.position.x = -myPlayer.position.x + CANVAS_WIDTH / 2;
+      this.background.position.y = -myPlayer.position.y + CANVAS_HEIGHT / 2;
+      this.foreground.position.x = -myPlayer.position.x + CANVAS_WIDTH / 2;
+      this.foreground.position.y = -myPlayer.position.y + CANVAS_HEIGHT / 2;
+    }
+
+    this.background.draw(this.context);
 
     for (const id in this.frontendPlayers) {
       const player = this.frontendPlayers[id];
-      player.draw(this.context);
+      player.drawRelative(this.context, this.background);
     }
 
     for (const id in this.frontendProjectiles) {
       const projectile = this.frontendProjectiles[id];
-      projectile.draw(this.context);
+      projectile.drawRelative(this.context, this.background);
+    }
+
+    // this.boundaries.forEach((boundary) => {
+    //   boundary.drawRelative(this.context, this.background);
+    // });
+
+    this.foreground.draw(this.context);
+  };
+
+  private initBoundaries = (boundaries: any) => {
+    const boundaryImage = new Image(64, 64);
+    boundaryImage.src = "/tiles/Boundary.png";
+    for (let i = 0; i < boundaries.length; i++) {
+      const boundary = new Sprite({ position: boundaries[i].position, image: boundaryImage });
+      this.boundaries.push(boundary);
     }
   };
 
@@ -142,21 +191,28 @@ export class Game {
       const backendPlayer = backendPlayers[id];
       // add new players
       if (!this.frontendPlayers[id]) {
+        const img = new Image();
+        img.src = "/characters/BlackSorcerer/SeparateAnim/Walk.png";
         this.frontendPlayers[id] = new Player({
           id,
-          x: backendPlayer.x,
-          y: backendPlayer.y,
-          radius: backendPlayer.radius,
+          position: {
+            x: backendPlayer.x,
+            y: backendPlayer.y,
+          },
+          image: img,
           color: backendPlayer.color,
           score: backendPlayer.score,
+          name: backendPlayer.name,
+          frames: { current: 0, max: 4, elapsed: 0 },
         });
       }
       // update players
       else {
+        const previousPosition = Object.assign({}, this.frontendPlayers[id].position);
         // server reconciliation (fix lag for us the player)
         if (id === this.socket.id) {
-          this.frontendPlayers[id].x = backendPlayer.x;
-          this.frontendPlayers[id].y = backendPlayer.y;
+          this.frontendPlayers[id].position.x = backendPlayer.x;
+          this.frontendPlayers[id].position.y = backendPlayer.y;
           const lastBackendInputIndex = this.playerInputs.findIndex((input) => {
             return backendPlayer.sequenceNumber === input.sequenceNumber;
           });
@@ -166,18 +222,21 @@ export class Game {
           }
 
           this.playerInputs.forEach((input) => {
-            this.frontendPlayers[id].x += input.dx;
-            this.frontendPlayers[id].y += input.dy;
+            this.frontendPlayers[id].position.x += input.dx;
+            this.frontendPlayers[id].position.y += input.dy;
           });
+        } else {
+          // interpolation (smooth out lag for other players)
+          // gsap.to(this.frontendPlayers[id].position, {
+          //   x: backendPlayer.x,
+          //   y: backendPlayer.y,
+          //   duration: TICK_RATE / 1000,
+          // });
+          this.frontendPlayers[id].position.x = backendPlayer.x;
+          this.frontendPlayers[id].position.y = backendPlayer.y;
         }
-        // interpolation (smooth out lag for other players)
-        else {
-          gsap.to(this.frontendPlayers[id], {
-            x: backendPlayer.x,
-            y: backendPlayer.y,
-            duration: TICK_RATE / 1000,
-          });
-        }
+        // update directions and movement
+        this.frontendPlayers[id].calculateDirectionAndMovement(previousPosition);
       }
     }
 
@@ -188,24 +247,24 @@ export class Game {
 
   private onKeyDown = (e: KeyboardEvent) => {
     if (!this.frontendPlayers[this.socket.id]) return;
-    this.keyboard.keyDown(e.code);
+    this.keyboard.keyDown(e.key);
   };
 
   private onKeyUp = (e: KeyboardEvent) => {
     if (!this.frontendPlayers[this.socket.id]) return;
-    this.keyboard.keyUp(e.code);
+    this.keyboard.keyUp(e.key);
   };
 
   private onClick = (e: MouseEvent) => {
     const myPlayer = this.frontendPlayers[this.socket.id];
     if (!myPlayer) return;
     const angle = Math.atan2(
-      (e.clientY - this.canvas.offsetTop) * devicePixelRatio - myPlayer.y,
-      (e.clientX - this.canvas.offsetLeft) * devicePixelRatio - myPlayer.x
+      (e.clientY - this.canvas.offsetTop) * devicePixelRatio - CANVAS_HEIGHT / 2,
+      (e.clientX - this.canvas.offsetLeft) * devicePixelRatio - CANVAS_WIDTH / 2
     );
     this.socket.emit("shoot", {
-      x: myPlayer.x,
-      y: myPlayer.y,
+      x: myPlayer.position.x,
+      y: myPlayer.position.y,
       angle,
     });
   };
