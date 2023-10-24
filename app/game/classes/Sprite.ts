@@ -1,4 +1,4 @@
-import { ZOOM_LEVEL } from "./Constants";
+import { BASE_MOVE_SPEED, ZOOM_LEVEL } from "./Constants";
 
 export enum Direction {
   down = 0,
@@ -64,10 +64,10 @@ export class Sprite {
 
     if (this.frames.max > 1 && this.moving) {
       this.frames.elapsed++;
-    }
-    if (this.frames.elapsed % 25 == 0) {
-      if (this.frames.current < this.frames.max - 1) this.frames.current++;
-      else this.frames.current = 0;
+      if (this.frames.elapsed % 20 == 0) {
+        if (this.frames.current < this.frames.max - 1) this.frames.current++;
+        else this.frames.current = 0;
+      }
     }
     c.drawImage(
       this.image,
@@ -83,13 +83,14 @@ export class Sprite {
   }
 
   calculateDirectionAndMovement(previousPosition: { x: number; y: number }) {
-    this.moving = previousPosition.x != this.position.x || previousPosition.y != this.position.y;
+    const dx = this.position.x - previousPosition.x;
+    const dy = this.position.y - previousPosition.y;
+    console.log(dx, dy);
+    this.moving = Math.abs(dx) >= BASE_MOVE_SPEED || Math.abs(dy) >= BASE_MOVE_SPEED;
     if (!this.moving) {
       this.frames.current = 0;
       return;
     }
-    const dx = this.position.x - previousPosition.x;
-    const dy = this.position.y - previousPosition.y;
     if (Math.abs(dy) > Math.abs(dx)) {
       if (dy > 0) this.direction = Direction.down;
       else this.direction = Direction.up;

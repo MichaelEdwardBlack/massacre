@@ -117,12 +117,10 @@ export class Game {
 
     const myPlayer = this.frontendPlayers[this.socket.id];
     if (myPlayer) {
-      const xOffset = (myPlayer.image.width / 4) * 2;
-      const yOffset = (myPlayer.image.height / 7) * 2;
-      this.background.position.x = -myPlayer.position.x - xOffset + CANVAS_WIDTH / 2;
-      this.background.position.y = -myPlayer.position.y - yOffset + CANVAS_HEIGHT / 2;
-      this.foreground.position.x = -myPlayer.position.x - xOffset + CANVAS_WIDTH / 2;
-      this.foreground.position.y = -myPlayer.position.y - yOffset + CANVAS_HEIGHT / 2;
+      this.background.position.x = -myPlayer.position.x + CANVAS_WIDTH / 2;
+      this.background.position.y = -myPlayer.position.y + CANVAS_HEIGHT / 2;
+      this.foreground.position.x = -myPlayer.position.x + CANVAS_WIDTH / 2;
+      this.foreground.position.y = -myPlayer.position.y + CANVAS_HEIGHT / 2;
     }
 
     this.background.draw(this.context);
@@ -210,7 +208,6 @@ export class Game {
       }
       // update players
       else {
-        // update directions and movement
         const previousPosition = Object.assign({}, this.frontendPlayers[id].position);
         // server reconciliation (fix lag for us the player)
         if (id === this.socket.id) {
@@ -228,16 +225,17 @@ export class Game {
             this.frontendPlayers[id].position.x += input.dx;
             this.frontendPlayers[id].position.y += input.dy;
           });
+        } else {
+          // interpolation (smooth out lag for other players)
+          // gsap.to(this.frontendPlayers[id].position, {
+          //   x: backendPlayer.x,
+          //   y: backendPlayer.y,
+          //   duration: TICK_RATE / 1000,
+          // });
+          this.frontendPlayers[id].position.x = backendPlayer.x;
+          this.frontendPlayers[id].position.y = backendPlayer.y;
         }
-        // interpolation (smooth out lag for other players)
-        else {
-          gsap.to(this.frontendPlayers[id].position, {
-            x: backendPlayer.x,
-            y: backendPlayer.y,
-            duration: TICK_RATE / 1000,
-          });
-        }
-
+        // update directions and movement
         this.frontendPlayers[id].calculateDirectionAndMovement(previousPosition);
       }
     }
